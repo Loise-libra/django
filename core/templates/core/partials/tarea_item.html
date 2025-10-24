@@ -1,0 +1,19 @@
+<a href="{% url 'detalle_tarea' tarea.id %}" class="task-link-wrapper">
+    <li class="task-item" data-task-id="{{ tarea.id }}">
+        <div class="task-header">
+            <div>
+                <span class="task-name">{{ tarea.nombre }}</span><br>
+                <span class="task-meta">
+                    {{ tarea.fecha_creacion|date:"l, d \d\e F \d\e Y" }}
+                </span><br>
+                <span class="task-actions-count" id="count-{{ tarea.id }}">
+                  Son  {{ tarea.conteo_completadas }} de {{ tarea.conteo_acciones }}
+                </span>
+            </div>
+            <div>
+                
+                <button class="btn-delete-task" data-task-id="{{ tarea.id }}">Eliminar</button>
+            </div>
+        </div>
+        </li>
+</a>

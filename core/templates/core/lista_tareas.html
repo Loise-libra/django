@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lista de Tareas</title>
+
+    <script type="text/javascript">
+      function getCSRFToken() {
+        return "{{ csrf_token }}";
+      }
+    </script>
+
+    <style>
+      /* --- Estilo "Suave y Flexible" --- */
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        background-color: #f4f7f6;
+        color: #333;
+        margin: 0;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        padding: 24px;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 16px;
+      }
+
+      h1 {
+        margin: 0;
+        color: #2c3e50;
+      }
+
+      #btn-abrir-modal {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      #btn-abrir-modal:hover {
+        background-color: #2980b9;
+      }
+
+      #search-form {
+        margin: 20px 0;
+      }
+      #search-input {
+        width: 100%;
+        box-sizing: border-box; /* Para que el padding no afecte el ancho */
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 16px;
+      }
+
+      /* --- Estilo de Tareas --- */
+      .task-list {
+        list-style: none;
+        padding: 0;
+        margin-top: 20px;
+      }
+
+      .task-item {
+        background: #fdfdfd;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        transition: box-shadow 0.2s;
+      }
+      .task-item:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      .task-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        cursor: pointer;
+      }
+
+      .task-name {
+        font-size: 1.2em;
+        font-weight: 600;
+      }
+      .task-meta {
+        font-size: 0.9em;
+        color: #777;
+      }
+      .task-actions-count {
+        background: #eee;
+        border-radius: 20px;
+        padding: 4px 10px;
+        font-size: 0.8em;
+        font-weight: 700;
+        margin-left: 10px;
+      }
+
+      .task-details {
+        /* Los detalles están ocultos por defecto */
+        display: none;
+        padding: 0 16px 16px 16px;
+        border-top: 1px solid #f0f0f0;
+      }
+
+      /* Estilo para acciones (sub-tareas) */
+      .action-list {
+        list-style: none;
+        padding: 0;
+        margin: 10px 0;
+      }
+      .action-item {
+        display: flex;
+        align-items: center;
+        padding: 8px 0;
+        font-size: 15px;
+      }
+      .action-item input[type="checkbox"] {
+        margin-right: 10px;
+        cursor: pointer;
+      }
+      /* El "subrayado" (tachado) que pediste */
+      .action-item.completada label {
+        text-decoration: line-through;
+        color: #999;
+      }
+
+      .add-action-form {
+        display: flex;
+        margin-top: 10px;
+      }
+      .add-action-input {
+        flex-grow: 1;
+        border: 1px solid #ddd;
+        padding: 8px;
+        border-radius: 6px;
+      }
+      .btn-add-action {
+        background: #2ecc71;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+        margin-left: 8px;
+        cursor: pointer;
+      }
+      .btn-delete-task {
+        background: #e74c3c;
+        color: white;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 0.8em;
+        cursor: pointer;
+      }
+
+      /* --- Estilo del Formulario Emergente (Modal) --- */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        /* Oculto por defecto */
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+
+      .modal-content {
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        width: 90%;
+        max-width: 500px;
+      }
+
+      .modal-content h2 {
+        margin-top: 0;
+      }
+
+      #form-crear-tarea {
+        display: flex;
+        flex-direction: column;
+      }
+      #form-crear-tarea label {
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+      #form-crear-tarea input {
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 16px;
+        margin-bottom: 16px;
+      }
+      #form-crear-tarea button {
+        padding: 12px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      #btn-guardar-tarea {
+        background: #3498db;
+        color: white;
+        margin-right: 10px;
+      }
+      #btn-cancelar-modal {
+        background: #ecf0f1;
+        color: #333;
+      }
+      /* ... (todo tu CSS anterior) ... */
+
+      /* --- Estilos para la cabecera de detalles y modo Run/Edit --- */
+      .task-detail-header {
+        display: flex;
+        justify-content: flex-end; /* Alinea el botón a la derecha */
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #f0f0f0;
+      }
+
+      .btn-toggle-edit {
+        background: #f0f0f0;
+        border: 1px solid #ccc;
+        color: #333;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      /* CAMBIO 4: Ocultar el formulario de "Agregar Acción" por defecto (Modo "Rum") */
+      .add-action-form {
+        display: none;
+      }
+
+      /* Mostrar el formulario SÓLO si .task-details tiene la clase "edit-mode" */
+      .task-details.edit-mode .add-action-form {
+        display: flex; /* Lo volvemos a mostrar */
+      }
+      .task-link-wrapper {
+        text-decoration: none;
+        color: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Mis Tareas</h1>
+        <button id="btn-abrir-modal">Agregar Tarea +</button>
+      </header>
+
+      <form id="search-form" method="GET" action="{% url 'lista_tareas' %}">
+        <input
+          type="text"
+          id="search-input"
+          name="q"
+          placeholder="Buscar tarea..."
+          value="{{ request.GET.q }}"
+        />
+      </form>
+
+      <ul class="task-list" id="task-list-container">
+        {% for tarea in tareas %} {% include 'core/partials/tarea_item.html' %}
+        {% endfor %} {% if not tareas %}
+        <p id="no-tasks-message">No hay tareas. ¡Agrega una!</p>
+        {% endif %}
+      </ul>
+    </div>
+
+    <div class="modal-overlay" id="task-modal">
+      <div class="modal-content">
+        <h2>Nueva Tarea</h2>
+        <form id="form-crear-tarea">
+          {% csrf_token %}
+          <label for="task-name-input">Nombre de la Tarea:</label>
+          <input type="text" id="task-name-input" required />
+
+          <div>
+            <button type="submit" id="btn-guardar-tarea">Guardar</button>
+            <button type="button" id="btn-cancelar-modal">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      // Espera a que todo el HTML esté cargado
+      document.addEventListener("DOMContentLoaded", () => {
+        // --- Referencias a elementos del HTML ---
+        const btnAbrirModal = document.getElementById("btn-abrir-modal");
+        const btnCancelarModal = document.getElementById("btn-cancelar-modal");
+        const modalOverlay = document.getElementById("task-modal");
+        const formCrearTarea = document.getElementById("form-crear-tarea");
+        const inputNombreTarea = document.getElementById("task-name-input");
+        const taskListContainer = document.getElementById(
+          "task-list-container"
+        );
+        const noTasksMessage = document.getElementById("no-tasks-message");
+
+        // --- Funciones para abrir/cerrar el Modal ---
+        function abrirModal() {
+          modalOverlay.style.display = "flex";
+          inputNombreTarea.focus(); // Pone el cursor en el input
+        }
+
+        function cerrarModal() {
+          modalOverlay.style.display = "none";
+          inputNombreTarea.value = ""; // Limpia el input
+        }
+
+        // --- Event Listeners para el Modal ---
+        btnAbrirModal.addEventListener("click", abrirModal);
+        btnCancelarModal.addEventListener("click", cerrarModal);
+
+        // Cerrar si se hace clic fuera del contenido
+        modalOverlay.addEventListener("click", (e) => {
+          if (e.target === modalOverlay) {
+            cerrarModal();
+          }
+        });
+
+        // --- 1. CREAR TAREA (AJAX/Fetch) ---
+        formCrearTarea.addEventListener("submit", async (e) => {
+          e.preventDefault(); // Evita que el formulario recargue la página
+          const nombre = inputNombreTarea.value.trim();
+
+          if (!nombre) return; // No hacer nada si está vacío
+
+          try {
+            const response = await fetch("{% url 'api_crear_tarea' %}", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCSRFToken(), // Token de seguridad
+              },
+              body: JSON.stringify({ nombre: nombre }),
+            });
+
+            if (response.ok) {
+              const nuevaTarea = await response.json();
+
+              // Crear el HTML para la nueva tarea
+              // NOTA: Esto es avanzado. Idealmente, se usa un template.
+              // Pero para simplificar, lo creamos aquí.
+              // (La versión más avanzada cargaría el partial HTML)
+              const taskElement = document.createElement("li");
+              taskElement.className = "task-item";
+              taskElement.setAttribute("data-task-id", nuevaTarea.id);
+              taskElement.innerHTML = `
+                            <div class="task-header">
+                                <div>
+                                    <span class="task-name">${nuevaTarea.nombre}</span>
+                                    <span class="task-meta">${nuevaTarea.fecha_creacion}</span>
+                                </div>
+                                <div>
+                                    <span class="task-actions-count" id="count-${nuevaTarea.id}">0 / 0</span>
+                                    <button class="btn-delete-task" data-task-id="${nuevaTarea.id}">Eliminar</button>
+                                </div>
+                            </div>
+                            <div class="task-details">
+                                <ul class="action-list" id="actions-for-${nuevaTarea.id}"></ul>
+                                <form class="add-action-form" data-task-id="${nuevaTarea.id}">
+                                    <input type="text" class="add-action-input" placeholder="Nueva acción..." required>
+                                    <button type="submit" class="btn-add-action">Agregar</button>
+                                </form>
+                            </div>
+                        `;
+
+              // Añadir al principio de la lista
+              taskListContainer.prepend(taskElement);
+
+              // Ocultar el mensaje "No hay tareas"
+              if (noTasksMessage) {
+                noTasksMessage.style.display = "none";
+              }
+
+              cerrarModal();
+            } else {
+              console.error("Error al crear la tarea");
+            }
+          } catch (error) {
+            console.error("Error de red:", error);
+          }
+        });
+
+        // --- MANEJO DE CLICS EN TODA LA LISTA (Delegación de eventos) ---
+        // Esto es más eficiente que poner un listener en cada botón
+        taskListContainer.addEventListener("click", async (e) => {
+          // --- 2. MOSTRAR/OCULTAR ACCIONES ---
+          // Si se hizo clic en el header de la tarea
+          const taskHeader = e.target.closest(".task-header");
+          if (taskHeader) {
+            // Evita que se active si se hizo clic en el botón de eliminar
+            if (!e.target.classList.contains("btn-delete-task")) {
+              const taskDetails = taskHeader.nextElementSibling;
+              // Toggle (mostrar/ocultar)
+              taskDetails.style.display =
+                taskDetails.style.display === "block" ? "none" : "block";
+            }
+          }
+
+          // --- 3. ELIMINAR TAREA ---
+          if (e.target.classList.contains("btn-delete-task")) {
+            const taskId = e.target.dataset.taskId;
+
+            if (confirm("¿Estás seguro de que quieres eliminar esta tarea?")) {
+              const response = await fetch(`/api/tarea/${taskId}/eliminar/`, {
+                method: "POST",
+                headers: { "X-CSRFToken": getCSRFToken() },
+              });
+
+              if (response.ok) {
+                // Eliminar el elemento del HTML
+                e.target.closest(".task-item").remove();
+              }
+            }
+          }
+
+          // --- 4. MARCAR/DESMARCAR ACCIÓN (Check) ---
+          if (e.target.classList.contains("action-checkbox")) {
+            const accionId = e.target.dataset.actionId;
+            const response = await fetch(`/api/accion/${accionId}/toggle/`, {
+              method: "POST",
+              headers: { "X-CSRFToken": getCSRFToken() },
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              const actionItem = e.target.closest(".action-item");
+              // Aplicar la clase 'completada' (con el tachado)
+              actionItem.classList.toggle("completada", data.completada);
+
+              // Actualizar el contador (función más avanzada)
+              actualizarContador(actionItem.closest(".task-item"));
+            }
+          }
+
+          if (e.target.classList.contains("btn-toggle-edit")) {
+            const button = e.target;
+            const taskDetails = button.closest(".task-details");
+
+            // Añade o quita la clase 'edit-mode'
+            taskDetails.classList.toggle("edit-mode");
+
+            // Cambia el texto del botón
+            if (taskDetails.classList.contains("edit-mode")) {
+              button.textContent = "Editar";
+            } else {
+              button.textContent = "Rum";
+            }
+          }
+        });
+
+        // --- MANEJO DE SUBMIT EN FORMULARIOS DE ACCIÓN (Delegación) ---
+        taskListContainer.addEventListener("submit", async (e) => {
+          // --- 5. AGREGAR NUEVA ACCIÓN ---
+          if (e.target.classList.contains("add-action-form")) {
+            e.preventDefault();
+            const taskId = e.target.dataset.taskId;
+            const input = e.target.querySelector(".add-action-input");
+            const descripcion = input.value.trim();
+
+            if (!descripcion) return;
+
+            const response = await fetch(
+              `/api/tarea/${taskId}/agregar_accion/`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-CSRFToken": getCSRFToken(),
+                },
+                body: JSON.stringify({ descripcion: descripcion }),
+              }
+            );
+
+            if (response.ok) {
+              const nuevaAccion = await response.json();
+
+              // Crear HTML para la nueva acción
+              const actionElement = document.createElement("li");
+              actionElement.className = "action-item";
+              actionElement.setAttribute("data-action-id", nuevaAccion.id);
+              actionElement.innerHTML = `
+                            <input type="checkbox" class="action-checkbox" data-action-id="${nuevaAccion.id}">
+                            <label for="">${nuevaAccion.descripcion}</label>
+                        `;
+
+              // Añadir a la lista de acciones de esa tarea
+              const actionList = e.target.previousElementSibling;
+              actionList.appendChild(actionElement);
+              input.value = ""; // Limpiar input
+
+              // Actualizar el contador
+              actualizarContador(e.target.closest(".task-item"));
+            }
+          }
+        });
+
+        // Función helper para actualizar el contador de acciones
+        function actualizarContador(taskItemElement) {
+          const taskId = taskItemElement.dataset.taskId;
+          const totalAcciones =
+            taskItemElement.querySelectorAll(".action-item").length;
+          const completadas = taskItemElement.querySelectorAll(
+            ".action-item.completada"
+          ).length;
+
+          const countElement = document.getElementById(`count-${taskId}`);
+          if (countElement) {
+            countElement.textContent = `${completadas} / ${totalAcciones}`;
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
